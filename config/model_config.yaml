@@ -1,0 +1,41 @@
+io:
+  logdir: logs/
+  datadir: data/su3/
+  dataset: Wireframe
+  resume_from:
+  num_workers: 6
+  tensorboard_port: 0
+  validation_interval: 24000
+  validation_debug: 120
+  focal_length: 2.1875
+  num_vpts: 3
+  augmentation_level: 2
+  model_save_dir: checkpoint/
+
+model:
+  patch_size: 32
+  input_image_size: 256
+  conic_convolution:
+    input_channels: 3
+    output_channels: 64
+    kernel_size: 3
+  transformer:
+    d_model: 256
+    num_layers: 4
+    num_heads: 8
+    dim_feedforward: 512
+
+training:
+  epochs: 30
+  batch_size: 16
+  optimizer: "adam"
+  device: "cuda" 
+  distill_weight: 2.0
+
+optim:
+  name: Adam
+  lr: 1.0e-4
+  amsgrad: True
+  weight_decay: 1.0e-5
+  max_epoch: 36
+  lr_decay_epoch: 24
