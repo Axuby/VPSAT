@@ -56,6 +56,7 @@ cd VPSAT
 Install dependencies: It is encouraged to install miniconda3 (or anaconda)
 ```bash
 conda create -n vpsat python=3.9
+source activate vpsat
 pip3 install -r requirements.txt
 ```
 
