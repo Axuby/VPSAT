@@ -66,6 +66,7 @@ def evaluate():
     with torch.no_grad():  # No gradients needed for evaluation
         with tqdm(total=len(val_loader), desc="Evaluating", unit="batch") as pbar:
             for images, labels in val_loader:
+                org_img_size = images[0].shape[1:]
                 # Preprocess images
                 images = preprocess_batch(images, C.model.input_image_size)
                 image_patches = extract_patches(images, C.model.patch_size)  # Shape: [batch_size, num_patches, 3, PATCH_SIZE, PATCH_SIZE]
@@ -78,8 +79,8 @@ def evaluate():
                 # Preprocess labels (vanishing points)
                 expanded_labels = labels["vpts"].unsqueeze(1).repeat(1, num_patches_per_image, 1, 1)
                 expanded_labels = expanded_labels.view(-1, 3, 3)  # Shape: [4096, 3, 3]
-                vpts_2d = to_pixel(expanded_labels, focal_length=C.io.focal_length, image_size=images[0].shape[1])
-                vpts_2d = adjust_vanishing_points(vpts_2d, images[0].shape[1:], C.model.input_image_size)
+                vpts_2d = to_pixel(expanded_labels, focal_length=C.io.focal_length, image_size=org_img_size[0])
+                vpts_2d = adjust_vanishing_points(vpts_2d, org_img_size, C.model.input_image_size)
 
                 # Move inputs to the device
                 image_patches = image_patches.to(C.training.device)
