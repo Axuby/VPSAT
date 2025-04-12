@@ -45,6 +45,8 @@ VPSAT/
 - torch
 - torchvision
 - tqdm
+- loguru
+- tensorboard
 
 ### Setup
 Clone the repository:
