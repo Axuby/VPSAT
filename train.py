@@ -48,6 +48,7 @@ def test(model, test_loader):
     with torch.no_grad():
         with tqdm(total=len(test_loader), desc="Testing", unit="batch") as pbar:
             for images, labels in test_loader:
+                org_img_size = images[0].shape[1:]
                 # Preprocess data
                 images = preprocess_batch(images, C.model.input_image_size)
                 image_patches = extract_patches(images, C.model.patch_size)
@@ -57,8 +58,8 @@ def test(model, test_loader):
                 num_patches_per_image = images[0].size()[1] * images[0].size()[2] // (C.model.patch_size ** 2)
                 expanded_labels = labels["vpts"].unsqueeze(1).repeat(1, num_patches_per_image, 1, 1)
                 expanded_labels = expanded_labels.view(-1, 3, 3)
-                vpts_2d = to_pixel(expanded_labels, focal_length=C.io.focal_length, image_size=images[0].shape[1])
-                vpts_2d = adjust_vanishing_points(vpts_2d, images[0].shape[1:], C.model.input_image_size)
+                vpts_2d = to_pixel(expanded_labels, focal_length=C.io.focal_length, image_size=org_img_size[0])
+                vpts_2d = adjust_vanishing_points(vpts_2d, org_img_size, C.model.input_image_size)
 
                 image_patches = image_patches.to(C.training.device)
                 vpts_2d = vpts_2d.to(C.training.device)
@@ -151,6 +152,7 @@ def train():
         with tqdm(total=len(train_loader), desc=f"Training Epoch [{epoch+1}/{C.training.epochs}]", unit="batch") as pbar:
             for images, labels in train_loader:
                 
+                org_img_size = images[0].shape[1:]
                 # Add line segment detection here
                 # line_segments = get_lsd_lines(images)
                 # line_segments = line_segments.to(C.training.device)
@@ -171,9 +173,9 @@ def train():
                 # Flatten labels to align with the flattened patch representation
                 expanded_labels = expanded_labels.view(-1, 3, 3)  # Shape: [4096, 3, 3]
                 # Convert 3D vanishing points to 2D
-                vpts_2d = to_pixel(expanded_labels, focal_length=C.io.focal_length, image_size=images[0].shape[1])  # Shape: [batch_size, num_vpts, 2]
+                vpts_2d = to_pixel(expanded_labels, focal_length=C.io.focal_length, image_size=org_img_size[0])  # Shape: [batch_size, num_vpts, 2]
                 # Preprocess the vpts
-                vpts_2d = adjust_vanishing_points(vpts_2d, images[0].shape[1:], C.model.input_image_size)
+                vpts_2d = adjust_vanishing_points(vpts_2d, org_img_size, C.model.input_image_size)
 
                 # Put patches and vpts on the device
                 image_patches = image_patches.to(C.training.device)
@@ -215,6 +217,7 @@ def train():
         with tqdm(total=len(val_loader), desc=f"Validation Epoch[{epoch+1}/{C.training.epochs}]", unit="batch") as qbar:
             with torch.no_grad():
                 for images, labels in val_loader:
+                    org_img_size = images[0].shape[1:]
                     images = preprocess_batch(images, C.model.input_image_size)
                     image_patches = extract_patches(images, C.model.patch_size)
                     batch_size, num_patches, channels, patch_h, patch_w = image_patches.size()
@@ -224,8 +227,8 @@ def train():
                     num_patches_per_image = images[0].size()[1] * images[0].size()[2] // (C.model.patch_size ** 2)
                     expanded_labels = labels["vpts"].unsqueeze(1).repeat(1, num_patches_per_image, 1, 1)
                     expanded_labels = expanded_labels.view(-1, 3, 3)  # Shape: [batch_size * num_patches, 3, 3]
-                    vpts_2d = to_pixel(expanded_labels, focal_length=C.io.focal_length, image_size=images[0].shape[1])
-                    vpts_2d = adjust_vanishing_points(vpts_2d, images[0].shape[1:], C.model.input_image_size)
+                    vpts_2d = to_pixel(expanded_labels, focal_length=C.io.focal_length, image_size=org_img_size[0])
+                    vpts_2d = adjust_vanishing_points(vpts_2d, org_img_size, C.model.input_image_size)
 
                     # Move data to the device
                     image_patches = image_patches.to(C.training.device)
