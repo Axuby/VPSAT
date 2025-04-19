@@ -20,7 +20,8 @@ from models.config import C
 class WireframeDataset(Dataset):
     def __init__(self, rootdir, split):
         self.rootdir = rootdir
-        filelist = sorted(glob(f"{rootdir}/*.png"))
+        # filelist = sorted(glob(f"{rootdir}/*.png"))
+        filelist = sorted(glob(os.path.join(rootdir, "**", "*.png"), recursive=True))
 
         self.split = split
         total_files = len(filelist)
