@@ -4,15 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="8e164175-e51c-4fb8-b9f5-ddfac959cb4a" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/angular.ablation.py" beforeDir="false" afterPath="$PROJECT_DIR$/angular.ablation.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/index.ablation.py" beforeDir="false" afterPath="$PROJECT_DIR$/index.ablation.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/models/trainer.py" beforeDir="false" afterPath="$PROJECT_DIR$/models/trainer.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/models/transformer_encoder.py" beforeDir="false" afterPath="$PROJECT_DIR$/models/transformer_encoder.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/models/vpsat.py" beforeDir="false" afterPath="$PROJECT_DIR$/models/vpsat.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/helper_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/helper_functions.py" afterDir="false" />
-    </list>
+    <list default="true" id="8e164175-e51c-4fb8-b9f5-ddfac959cb4a" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -78,7 +70,7 @@
       <updated>1743940912432</updated>
       <workItem from="1743940913709" duration="4142000" />
       <workItem from="1744228017599" duration="83155000" />
-      <workItem from="1744742303572" duration="58803000" />
+      <workItem from="1744742303572" duration="59178000" />
     </task>
     <servers />
   </component>
