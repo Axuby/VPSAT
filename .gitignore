@@ -140,3 +140,7 @@ dmypy.json
 /data/remaining_su3
 /data/su3
 ablation_results
+.vpsat_conda
+vpsat_conda
+*py
+py

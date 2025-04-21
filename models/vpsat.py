@@ -46,6 +46,7 @@ class FeatureExtractor(nn.Module):
             nn.ReLU()
         )
         self.global_avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.output_projection = nn.Linear(256, 256)
 
     def forward(self, x):
         x = self.layer1(x)
@@ -60,6 +61,7 @@ class VpSatNet(nn.Module):
     def __init__(self, C):
         super(VpSatNet, self).__init__()
         self.feature_extractor = FeatureExtractor(d_model=C.model.transformer.d_model)
+        self.feature_projection = nn.Linear(256, C.model.transformer.d_model)
         self.transformer_encoder = VpSatNetTransformer(C.model.transformer)
         self.vp_head = VanishingPointPredictionHead(
             C.model.transformer.d_model, num_vpts=C.io.num_vpts
@@ -68,6 +70,7 @@ class VpSatNet(nn.Module):
     def forward(self, image_patches, vpts=None, line_segments=None, mode="train"):
         features = self.feature_extractor(image_patches)
         features = features.view(features.size(0), -1, features.size(1))
+        features = self.feature_projection(features)
 
         if line_segments is not None:
             combined_features = torch.cat((features, line_segments), dim=1)

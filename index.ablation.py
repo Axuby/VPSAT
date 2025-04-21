@@ -19,7 +19,7 @@ from my_update import AblationStudy
 
 
 def run_single_parameter_ablation(param_path, values, base_config_path='./config/model_config.yaml',
-                                  results_dir='./ablation_results', epochs=15):
+                                  results_dir='./ablation_results', epochs=30):
     """
     function to run a single parameter ablation study.
 
@@ -136,14 +136,14 @@ def run_comprehensive_ablation():
 
     # parameters to ablate
     ablation_params = [
-        {
-            'param_path': 'model.transformer.num_layers',
-            'values': [2, 4, 6, 8]
-        },
-        {
-            'param_path': 'model.transformer.num_heads',
-            'values': [4, 8, 12]
-        },
+#        {
+#            'param_path': 'model.transformer.num_layers',
+#            'values': [2, 4, 6, 8]
+#        },
+#        {
+#            'param_path': 'model.transformer.num_heads',
+#            'values': [4, 8, 16]
+#        },
         {
             'param_path': 'model.transformer.d_model',
             'values': [128, 256, 512]
@@ -172,7 +172,7 @@ def run_comprehensive_ablation():
         values = param_config['values']
         experiment_name = param_path.replace('.', '_')
 
-        study.run_experiment(experiment_name, param_path, values, epochs=15)
+        study.run_experiment(experiment_name, param_path, values, epochs=30)
 
         study.plot_results(experiment_name)
 
