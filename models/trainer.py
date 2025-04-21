@@ -68,12 +68,12 @@ class Trainer:
         with context:
             for images, labels in tqdm(loader, desc=mode.capitalize(), unit="batch"):
                 original_image_size = images[0].shape[1:]
-                images = preprocess_batch(images, self.C.model.input_image_size)
-                patches = extract_patches(images, self.C.model.patch_size)
+                images_resized = preprocess_batch(images, self.C.model.input_image_size)
+                patches = extract_patches(images_resized, self.C.model.patch_size)
                 b, n, c, h, w = patches.shape
                 patches = patches.view(b * n, c, h, w).to(self.device)
 
-                n_patches = images[0].size()[1] * images[0].size()[2] // (self.C.model.patch_size ** 2)
+                n_patches = images_resized[0].size()[1] * images_resized[0].size()[2] // (self.C.model.patch_size ** 2)
                 labels = labels["vpts"].unsqueeze(1).repeat(1, n_patches, 1, 1).view(-1, 3, 3)
                 vpts_2d = to_pixel(labels, self.C.io.focal_length, original_image_size[0])
                 vpts_2d = adjust_vanishing_points(vpts_2d, original_image_size, self.C.model.input_image_size).to(self.device)
@@ -85,6 +85,23 @@ class Trainer:
                 similarity = self.cosine_similarity(outputs, vpts_2d)
                 loss = 1 - similarity.mean()
 
+                # Plot the VPs. Read the function (utils.helper_functions.plot_image_with_vps) docstring for more details.
+                plot_image_with_vps(
+                    image_tensor=images[0], 
+                    gt_vp=vpts_2d[0, 0],  # taking only 1st VP
+                    pred_vp=outputs[0, 0],  # taking corresponding 1st prediction 
+                    show_all=False, 
+                    save_path=os.path.join(self.outdir, f"vp_location.png"))
+                
+                # Plot the VP direction arrows. Read the function (utils.helper_functions.plot_vp_direction_arrows) docstring 
+                # for more details.
+                plot_vp_direction_arrows(
+                    image_tensor=images[0],
+                    gt_vp=vpts_2d[0, 0],  # taking only 1st VP
+                    pred_vp=outputs[0, 0],  # taking corresponding 1st prediction
+                    save_path=os.path.join(self.outdir, f"vp_direction.png")
+                )
+ 
                 if is_train:
                     loss.backward()
                     self.optimizer.step()
