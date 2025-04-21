@@ -1,8 +1,10 @@
 import torch
+import numpy as np
 from PIL import Image
 from torch import nn
+import matplotlib.pyplot as plt
 from torchvision import transforms
-from torchvision.transforms import functional as F
+import torchvision.transforms.functional as TF
 
 
 def get_optimizer(model, config):
@@ -198,8 +200,6 @@ def compute_accuracy(predictions, targets, threshold=0.9):
     return correct, total
 
 
-
-
 def compute_angular_accuracy(predictions, targets, threshold=5.0):
     """
     Compute accuracy based on angular deviation.
@@ -223,4 +223,123 @@ def compute_angular_accuracy(predictions, targets, threshold=5.0):
     total = predictions.size(0)
 
     return correct / total * 100  # Return accuracy in percentage
+
+
+def plot_image_with_vps(image_tensor, gt_vp, pred_vp, title="VP Pixel Location for Prediction vs GT", show_all=True, save_path=None):
+    """
+    Plots an image with its vanishing points.
+
+    There are a few things to note:
+        You might not see an image but just a blank white canvas and the plotted VP.
+        This is because the VP might be too far away from the image and image has become significantly smaller.
+        If you set show_all to True, you will see all the VPs, but very unlikely to be useful.
+        If you set show_all to False, you will see only the first VP. 
+        If you do not see the image, just for the next iteration and you might see the image in which the VP is closer to the image.
+
+    
+    Args:
+        image_tensor (torch.Tensor): shape [3, H, W], values should be in [0, 1].
+        gt_vp (torch.Tensor): Ground-truth vanishing point (2D) [2].
+        pred_vp (torch.Tensor): Predicted vanishing point (2D) [2].
+        title (str): title for the plot.
+        show_all (bool): if True, plot all VPs; else only the first one.
+        save_path (str or None): path to save the image, if provided.
+    """
+    img = image_tensor.detach().cpu()
+    if img.max() > 1.0:
+        img = img / 255.0
+
+    image_np = img.permute(1, 2, 0).numpy()  # [H, W, 3]
+
+    # --- Plot ---
+    plt.figure(figsize=(6, 6))
+    plt.imshow(image_np)
+    plt.title(title)
+
+    colors_gt = ['g', 'b', 'r']
+    colors_pred = ['r', 'g', 'b']
+    num_vpts = gt_vp.shape[0] if show_all else 1
+
+    for i in range(num_vpts):
+        vp1 = gt_vp.detach().cpu().numpy()
+        plt.scatter(vp1[0], vp1[1], color=colors_gt[i % len(colors_gt)], marker='o', s=50)
+        plt.text(vp1[0]+5, vp1[1]-5, f"GT VP{i+1}", color=colors_gt[i % len(colors_gt)], fontsize=9)
+
+        vp2 = pred_vp.detach().cpu().numpy()
+        plt.scatter(vp2[0], vp2[1], color=colors_pred[i % len(colors_pred)], marker='*', s=50)
+        plt.text(vp2[0]+5, vp2[1]-5, f"Pred VP{i+1}", color=colors_pred[i % len(colors_pred)], fontsize=9)
+
+    plt.axis('off')
+    if save_path:
+        plt.savefig(save_path, bbox_inches='tight', dpi=200)
+    else:
+        plt.show()
+
+
+
+def plot_vp_direction_arrows(image_tensor, gt_vp, pred_vp, save_path=None, title="VP Direction Vectors for Prediction vs GT", arrow_length=100):
+    """
+    Plot arrows starting from image center toward ground-truth and predicted VP directions.
+
+    To avoid the problem of image not being visible due to the VP being too far away,
+    we visualize the direction vectors instead of the actual VPs from the image center.
+    The arrows tell the direction of the VPs. It is guranteed that the image and the arrows will be visible.
+
+    Args:
+        image_tensor (torch.Tensor): Image tensor [3, H, W], already resized.
+        gt_vp (torch.Tensor): Ground-truth vanishing point (2D) [2].
+        pred_vp (torch.Tensor): Predicted vanishing point (2D) [2].
+        save_path (str or None): If provided, save the figure here.
+        title (str): Title for the plot.
+        arrow_length (int): Length of the arrows in pixels.
+    """
+    # Prepare image
+    image = image_tensor.detach().cpu()
+    if image.max() > 1.0:
+        image = image / 255.0
+    image = image.permute(1, 2, 0).numpy()  # [H, W, 3]
+
+    width, height, _ = image.shape
+    center_x, center_y = width / 2, height / 2
+
+    # Convert VPs to numpy
+    gt_vp = gt_vp.detach().cpu().numpy()
+    pred_vp = pred_vp.detach().cpu().numpy()
+
+    # Compute direction vectors (unit vectors)
+    gt_direction = gt_vp - np.array([center_x, center_y])
+    gt_direction = gt_direction / (np.linalg.norm(gt_direction) + 1e-6)  # Normalize
+
+    pred_direction = pred_vp - np.array([center_x, center_y])
+    pred_direction = pred_direction / (np.linalg.norm(pred_direction) + 1e-6)
+
+    # Scale to fixed arrow length
+    gt_arrow = gt_direction * arrow_length
+    pred_arrow = pred_direction * arrow_length
+
+    # Plotting
+    plt.figure(figsize=(6, 6))
+    plt.imshow(image)
+    plt.title(title)
+    plt.axis('off')
+
+    # Green: GT, Red: Prediction
+    plt.arrow(center_x, center_y, gt_arrow[0], gt_arrow[1],
+              head_width=5, head_length=8, fc='green', ec='green', label='GT VP')
+
+    plt.arrow(center_x, center_y, pred_arrow[0], pred_arrow[1],
+              head_width=5, head_length=8, fc='red', ec='red', label='Pred VP')
+
+    # Scatter actual VPs. 
+    # plt.scatter([], [], c='lime', marker='-', s=50, label='GT VP')
+    # plt.scatter([], [], c='red', marker='-', s=50, label='Pred VP')
+
+    plt.legend(loc='lower right')
+
+    if save_path:
+        plt.savefig(save_path, bbox_inches='tight', dpi=200)
+        plt.close()
+    else:
+        plt.show()
+
 

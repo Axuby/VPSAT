@@ -22,7 +22,6 @@ class Trainer:
         self.logdir = config.io.logdir
         loss_type = config.training.get('loss_type', 'mse')  # Default to 'mse' if not present
         self.loss_function = get_loss_function(loss_type)
-        self.loss_function = get_loss_function(config.training.loss_type)
         os.makedirs(self.logdir, exist_ok=True)
         os.makedirs(self.outdir, exist_ok=True)
 
@@ -57,6 +56,7 @@ class Trainer:
         self.writer.add_scalar("Loss/train", train_loss, epoch)
         self.writer.add_scalar("Loss/val", val_loss, epoch)
 
+    
     def _run_epoch(self, loader, mode="train"):
         is_train = mode == "train"
         if is_train:
@@ -92,6 +92,24 @@ class Trainer:
                 # loss = 1 - similarity.mean()
                 loss = self.loss_function(outputs, vpts_2d)
 
+
+                # Plot the VPs. Read the function (utils.helper_functions.plot_image_with_vps) docstring for more details.
+                plot_image_with_vps(
+                    image_tensor=images[0], 
+                    gt_vp=vpts_2d[0, 0],  # taking only 1st VP
+                    pred_vp=outputs[0, 0],  # taking corresponding 1st prediction 
+                    show_all=False, 
+                    save_path=os.path.join(self.outdir, f"vp_location.png"))
+                
+                # Plot the VP direction arrows. Read the function (utils.helper_functions.plot_vp_direction_arrows) docstring 
+                # for more details.
+                plot_vp_direction_arrows(
+                    image_tensor=images[0],
+                    gt_vp=vpts_2d[0, 0],  # taking only 1st VP
+                    pred_vp=outputs[0, 0],  # taking corresponding 1st prediction
+                    save_path=os.path.join(self.outdir, f"vp_direction.png")
+                )
+ 
                 if is_train:
                     loss.backward()
                     self.optimizer.step()
@@ -99,6 +117,7 @@ class Trainer:
                 epoch_loss += loss.item()
 
         return epoch_loss / len(loader)
+    
 
     def validate(self):
         return self._run_epoch(self.val_loader, mode="validate")
