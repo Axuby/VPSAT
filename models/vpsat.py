@@ -98,6 +98,7 @@ def get_vp_head(head_type, d_model, num_vpts=3):
 class VpSatNet(nn.Module):
     def __init__(self, C):
         super(VpSatNet, self).__init__()
+        self.C = C
         extractor_type = C.model.get('feature_extractor_type', 'cnn')
         self.feature_extractor = get_feature_extractor(
             extractor_type,
@@ -117,9 +118,13 @@ class VpSatNet(nn.Module):
 
     def forward(self, image_patches, vpts=None, line_segments=None, mode="train"):
         features = self.feature_extractor(image_patches)
-        if len(features.shape) == 2:  # [batch_size, features]
-            features = features.unsqueeze(1)  # [batch_size, 1, features]
-        features = features.view(features.size(0), -1, features.size(1))
+
+        num_patches_per_side = self.C.model.input_image_size // self.C.model.patch_size
+        total_patches = num_patches_per_side * num_patches_per_side
+        actual_batch_size = features.size(0) // total_patches
+
+        features = features.view(actual_batch_size, total_patches, -1)
+
         features = self.feature_projection(features)
 
         if line_segments is not None:

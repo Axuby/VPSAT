@@ -144,7 +144,7 @@ class VpSatNetTransformer(nn.Module):
 
 
 class SimpleVPHead(nn.Module):
-    def __init__(self, d_model, num_vpts=3, output_dim=3):
+    def __init__(self, d_model, num_vpts=3, output_dim=2):
         super(SimpleVPHead, self).__init__()
         self.num_vpts = num_vpts
         self.output_dim = output_dim

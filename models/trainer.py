@@ -57,7 +57,6 @@ class Trainer:
         self.writer.add_scalar("Loss/train", train_loss, epoch)
         self.writer.add_scalar("Loss/val", val_loss, epoch)
 
-    
     def _run_epoch(self, loader, mode="train"):
         is_train = mode == "train"
         if is_train:
@@ -76,10 +75,14 @@ class Trainer:
                 b, n, c, h, w = patches.shape
                 patches = patches.view(b * n, c, h, w).to(self.device)
 
-                n_patches = images[0].size()[1] * images[0].size()[2] // (self.C.model.patch_size ** 2)
-                labels = labels["vpts"].unsqueeze(1).repeat(1, n_patches, 1, 1).view(-1, 3, 3)
-                vpts_2d = to_pixel(labels, self.C.io.focal_length, original_image_size[0])
-                vpts_2d = adjust_vanishing_points(vpts_2d, original_image_size, self.C.model.input_image_size).to(self.device)
+                # n_patches = images[0].size()[1] * images[0].size()[2] // (self.C.model.patch_size ** 2)
+                # labels = labels["vpts"].unsqueeze(1).repeat(1, n_patches, 1, 1).view(-1, 3, 3)
+                # vpts_2d = to_pixel(labels, self.C.io.focal_length, original_image_size[0])
+                # vpts_2d = adjust_vanishing_points(vpts_2d, original_image_size, self.C.model.input_image_size).to(self.device)
+                # Don't repeat labels for each patch - keep them at image level
+                vpts_3d = labels["vpts"].to(self.device)  # Shape: [batch_size, 3, 3]
+                vpts_2d = to_pixel(vpts_3d, self.C.io.focal_length, original_image_size[0])
+                vpts_2d = adjust_vanishing_points(vpts_2d, original_image_size, self.C.model.input_image_size)
 
                 if is_train:
                     self.optimizer.zero_grad()
@@ -96,7 +99,6 @@ class Trainer:
                 epoch_loss += loss.item()
 
         return epoch_loss / len(loader)
-    
 
     def validate(self):
         return self._run_epoch(self.val_loader, mode="validate")
