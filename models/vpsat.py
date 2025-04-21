@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from models.transformer_encoder import VpSatNetTransformer, VanishingPointPredictionHead
+from models.transformer_encoder import VpSatNetTransformer, VanishingPointPredictionHead, SimpleVPHead
+
 
 def multi_vp_loss(predictions, targets):
     """
@@ -46,6 +47,7 @@ class FeatureExtractor(nn.Module):
             nn.ReLU()
         )
         self.global_avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.output_projection = nn.Linear(256, 256)
 
     def forward(self, x):
         x = self.layer1(x)
@@ -56,18 +58,69 @@ class FeatureExtractor(nn.Module):
         x = x.view(x.size(0), -1)  # Flatten
         return x
 
+
+class ResNetFeatureExtractor(nn.Module):
+    def __init__(self, d_model):
+        super(ResNetFeatureExtractor, self).__init__()
+
+        import torchvision.models as models
+        resnet = models.resnet18(pretrained=True)
+        # removes the classification layers
+        self.backbone = nn.Sequential(*list(resnet.children())[:-2])
+        self.global_avg_pool = nn.AdaptiveAvgPool2d((1, 1))
+
+        self.projection = nn.Linear(512, d_model)  # ResNet18 outputs 512 channels
+
+    def forward(self, x):
+        x = self.backbone(x)
+        x = self.global_avg_pool(x)
+        x = x.view(x.size(0), -1)  # Flatten
+        x = self.projection(x)
+        return x
+
+
+def get_feature_extractor(extractor_type, d_model):
+    if extractor_type == 'cnn':
+        return FeatureExtractor(d_model)
+    elif extractor_type == 'resnet':
+        return ResNetFeatureExtractor(d_model)
+    else:
+        raise ValueError(f"Unknown feature extractor type: {extractor_type}")
+
+def get_vp_head(head_type, d_model, num_vpts=3):
+    if head_type == 'simple':
+        return SimpleVPHead(d_model, num_vpts)
+    elif head_type == 'hybrid':
+        return VanishingPointPredictionHead(d_model, num_vpts)
+    else:
+        raise ValueError(f"Unknown VP head type: {head_type}")
+
 class VpSatNet(nn.Module):
     def __init__(self, C):
         super(VpSatNet, self).__init__()
-        self.feature_extractor = FeatureExtractor(d_model=C.model.transformer.d_model)
+        extractor_type = C.model.get('feature_extractor_type', 'cnn')
+        self.feature_extractor = get_feature_extractor(
+            extractor_type,
+            C.model.transformer.d_model
+        )
+        self.feature_projection = nn.Linear(256, C.model.transformer.d_model)
         self.transformer_encoder = VpSatNetTransformer(C.model.transformer)
-        self.vp_head = VanishingPointPredictionHead(
-            C.model.transformer.d_model, num_vpts=C.io.num_vpts
+        # self.vp_head = VanishingPointPredictionHead(
+        #     C.model.transformer.d_model, num_vpts=C.io.num_vpts
+        # )
+        vp_head_type = C.model.get('vp_head_type', 'simple')
+        self.vp_head = get_vp_head(
+            vp_head_type,
+            C.model.transformer.d_model,
+            C.io.num_vpts
         )
 
     def forward(self, image_patches, vpts=None, line_segments=None, mode="train"):
         features = self.feature_extractor(image_patches)
+        if len(features.shape) == 2:  # [batch_size, features]
+            features = features.unsqueeze(1)  # [batch_size, 1, features]
         features = features.view(features.size(0), -1, features.size(1))
+        features = self.feature_projection(features)
 
         if line_segments is not None:
             combined_features = torch.cat((features, line_segments), dim=1)

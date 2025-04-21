@@ -5,19 +5,36 @@ import torch.nn.functional as F
 
 
 class PositionalEncoding(nn.Module):
-    def __init__(self, d_model, max_len=5000):
+    def __init__(self, d_model, max_len=5000, encoding_type="sinusoidal"):
         super(PositionalEncoding, self).__init__()
+        self.d_model = d_model
+        self.encoding_type = encoding_type
 
-        pe = torch.zeros(max_len, d_model)
-        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
-        pe[:, 0::2] = torch.sin(position * div_term)
-        pe[:, 1::2] = torch.cos(position * div_term)
-        pe = pe.unsqueeze(0).transpose(0, 1)
-        self.register_buffer('pe', pe)
+        if encoding_type == "sinusoidal":
+            pe = torch.zeros(max_len, d_model)
+            position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
+            div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
+            pe[:, 0::2] = torch.sin(position * div_term)
+            pe[:, 1::2] = torch.cos(position * div_term)
+            pe = pe.unsqueeze(0).transpose(0, 1)
+            self.register_buffer('pe', pe)
+
+        elif encoding_type == "learned":
+            # learned positional embeddings
+            self.pe = nn.Parameter(torch.randn(max_len, 1, d_model))
+            nn.init.xavier_uniform_(self.pe)
+
+        else:
+            raise ValueError(f"Unknown positional encoding type: {encoding_type}")
 
     def forward(self, x):
-        return x + self.pe[:x.size(0), :]
+        if self.encoding_type == "sinusoidal":
+            return x + self.pe[:x.size(0), :]
+        elif self.encoding_type == "learned":
+            # for batched input with shape [seq_len, batch_size, d_model]
+            return x + self.pe[:x.size(0), :].expand(-1, x.size(1), -1)
+        else:
+            return x
 
 
 class MultiHeadAttention(nn.Module):
@@ -124,7 +141,25 @@ class VpSatNetTransformer(nn.Module):
             output = self.transformer_encoder(patches)
 
         return output
-    
+
+
+class SimpleVPHead(nn.Module):
+    def __init__(self, d_model, num_vpts=3, output_dim=3):
+        super(SimpleVPHead, self).__init__()
+        self.num_vpts = num_vpts
+        self.output_dim = output_dim
+
+        # simple linear projection
+        self.projection = nn.Linear(d_model, num_vpts * output_dim)
+
+    def forward(self, x):
+        if len(x.shape) == 3:
+            x = x.mean(dim=1)
+
+        output = self.projection(x)
+        output = output.view(-1, self.num_vpts, self.output_dim)
+        return output
+
 
 class VanishingPointPredictionHead(nn.Module):
     def __init__(self, d_model, num_vpts=1, output_dim=2):

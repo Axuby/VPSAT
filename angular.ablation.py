@@ -179,7 +179,7 @@ def create_error_visualizations(errors, output_dir):
                 label=f'Mean: {np.mean(flattened_errors):.2f}°')
     plt.axvline(np.median(flattened_errors), color='green', linestyle='--', linewidth=2,
                 label=f'Median: {np.median(flattened_errors):.2f}°')
-    plt.axvline(np.percentile(flattened_errors, 95), color='purple', linestyle='--', linewidth=2,
+    plt.axvline(np.percentile(flattened_errors, 95), color='blue', linestyle='--', linewidth=2,
                 label=f'95th Percentile: {np.percentile(flattened_errors, 95):.2f}°')
 
     plt.xlabel('Angular Error (degrees)', fontsize=14)

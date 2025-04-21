@@ -20,6 +20,9 @@ class Trainer:
         self.device = torch.device(config.training.device if torch.cuda.is_available() else "cpu")
         self.outdir = config.io.model_save_dir
         self.logdir = config.io.logdir
+        loss_type = config.training.get('loss_type', 'mse')  # Default to 'mse' if not present
+        self.loss_function = get_loss_function(loss_type)
+        self.loss_function = get_loss_function(config.training.loss_type)
         os.makedirs(self.logdir, exist_ok=True)
         os.makedirs(self.outdir, exist_ok=True)
 
@@ -82,8 +85,9 @@ class Trainer:
                     self.optimizer.zero_grad()
 
                 outputs = self.model(patches)
-                similarity = self.cosine_similarity(outputs, vpts_2d)
-                loss = 1 - similarity.mean()
+                # similarity = self.cosine_similarity(outputs, vpts_2d)
+                # loss = 1 - similarity.mean()
+                loss = self.loss_function(outputs, vpts_2d)
 
                 if is_train:
                     loss.backward()

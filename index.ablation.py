@@ -136,14 +136,14 @@ def run_comprehensive_ablation():
 
     # parameters to ablate
     ablation_params = [
-        {
-            'param_path': 'model.transformer.num_layers',
-            'values': [2, 4, 6, 8]
-        },
-        {
-            'param_path': 'model.transformer.num_heads',
-            'values': [4, 8, 12]
-        },
+        #        {
+        #            'param_path': 'model.transformer.num_layers',
+        #            'values': [2, 4, 6, 8]
+        #        },
+        #        {
+        #            'param_path': 'model.transformer.num_heads',
+        #            'values': [4, 8, 16]
+        #        },
         {
             'param_path': 'model.transformer.d_model',
             'values': [128, 256, 512]
@@ -165,8 +165,6 @@ def run_comprehensive_ablation():
             'values': ['mse', 'cosine', 'combined']
         }
     ]
-
-
     for param_config in ablation_params:
         param_path = param_config['param_path']
         values = param_config['values']

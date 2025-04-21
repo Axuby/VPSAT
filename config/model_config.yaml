@@ -31,6 +31,7 @@ training:
   optimizer: "adam"
   device: "cuda" 
   distill_weight: 2.0
+  loss_type: "combined"  # options: "mse", "cosine", "combined"
 
 optim:
   name: Adam

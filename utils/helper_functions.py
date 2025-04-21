@@ -1,7 +1,51 @@
 import torch
 from PIL import Image
+from torch import nn
 from torchvision import transforms
 from torchvision.transforms import functional as F
+
+
+def get_optimizer(model, config):
+    # Get learning rate from config
+    lr = config.optim.lr  # 1e-3, 1e-4, or 5e-5
+
+    # Create optimizer
+    optimizer = torch.optim.Adam(
+        model.parameters(),
+        lr=lr,
+        weight_decay=config.optim.weight_decay,
+        amsgrad=config.optim.amsgrad
+    )
+
+    return optimizer
+
+def compute_mse_loss(predictions, targets):
+    """Mean Squared Error loss."""
+    return nn.functional.mse_loss(predictions, targets)
+
+
+def compute_cosine_loss(predictions, targets):
+    """Cosine similarity loss."""
+    cos_sim = nn.functional.cosine_similarity(predictions, targets, dim=-1)
+    return 1 - cos_sim.mean()  # Convert to loss (lower is better)
+
+
+def compute_combined_loss(predictions, targets, alpha=0.5):
+    """Combined MSE and cosine similarity loss."""
+    mse_loss = compute_mse_loss(predictions, targets)
+    cosine_loss = compute_cosine_loss(predictions, targets)
+    return alpha * mse_loss + (1 - alpha) * cosine_loss
+
+
+def get_loss_function(loss_type):
+    if loss_type == 'mse':
+        return compute_mse_loss
+    elif loss_type == 'cosine':
+        return compute_cosine_loss
+    elif loss_type == 'combined':
+        return compute_combined_loss
+    else:
+        raise ValueError(f"Unknown loss type: {loss_type}")
 
 def extract_patches(images, patch_size):
     """
@@ -91,6 +135,8 @@ def preprocess_image(image, resized_size):
     Returns:
         torch.Tensor: Preprocessed image tensor of shape [C, target_H, target_W].
     """
+    if isinstance(resized_size, int):
+        resized_size = (resized_size, resized_size)
     # Convert torch.Tensor to PIL Image if needed
     if isinstance(image, torch.Tensor):
         # Convert from torch.Tensor (C, H, W) to NumPy array (H, W, C) for PIL compatibility
