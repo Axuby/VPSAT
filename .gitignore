@@ -142,8 +142,6 @@ dmypy.json
 ablation_results
 .vpsat_conda
 vpsat_conda
-*py
-py
 
 
 ablation_results
@@ -151,4 +149,5 @@ ablation_results_first
 evaluation_results
 evaluation_results_first
 aa_evaluation_comparison
+aa_evaluation_results
 checkpoint
